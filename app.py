@@ -5,10 +5,14 @@ import pyttsx3
 import datetime
 import webbrowser
 import os
-import pythoncom
-import win32com.client as win32
 from openpyxl import Workbook
+import platform
 
+if platform.system() == "Windows":
+    import win32com.client as win32
+    import pythoncom
+else:
+    from docx import Document
 app = Flask(__name__)
 
 # Initialize the recognizer and the text-to-speech engine
@@ -120,24 +124,38 @@ def write_to_notepad():
         else:
             # Send the recognized text to Notepad
             os.system(f'''powershell -c "$wshell = New-Object -ComObject wscript.shell; $wshell.SendKeys('{query} ')"''')
-
 def create_word_document():
-    pythoncom.CoInitialize()
-    word_app = win32.Dispatch("Word.Application")
-    word_app.Visible = True
-    doc = word_app.Documents.Add()
-    paragraph = doc.Content.Paragraphs.Add()
-    
-    while True:
-        query = listen()
-        if "stop writing" in query:
-            speak("Stopped writing.")
-            break
-        else:
-            paragraph.Range.Text += query + " "
-            doc.Content.InsertAfter(query + " ")
-            paragraph.Range.Collapse(0)  # Move cursor to end of document
-            word_app.Application.ScreenUpdating = True
+    if platform.system() == "Windows":
+        pythoncom.CoInitialize()
+        word_app = win32.Dispatch("Word.Application")
+        word_app.Visible = True
+        doc = word_app.Documents.Add()
+        paragraph = doc.Content.Paragraphs.Add()
+
+        while True:
+            query = listen()
+            if "stop writing" in query:
+                speak("Stopped writing.")
+                break
+            else:
+                paragraph.Range.Text += query + " "
+                doc.Content.InsertAfter(query + " ")
+                paragraph.Range.Collapse(0)  # Move cursor to end of document
+                word_app.Application.ScreenUpdating = True
+
+    else:
+        doc = Document()
+        paragraph = doc.add_paragraph()
+
+        while True:
+            query = listen()
+            if "stop writing" in query:
+                speak("Stopped writing.")
+                break
+            else:
+                paragraph.add_run(query + " ")
+                doc.save('example.docx')
+
 
 def write_to_excel():
     # Create a new workbook and select the active worksheet
