@@ -6,13 +6,8 @@ import datetime
 import webbrowser
 import os
 from openpyxl import Workbook
-import platform
+from docx import Document
 
-if platform.system() == "Windows":
-    import win32com.client as win32
-    import pythoncom
-else:
-    from docx import Document
 app = Flask(__name__)
 
 # Initialize the recognizer and the text-to-speech engine
@@ -125,24 +120,17 @@ def write_to_notepad():
             # Send the recognized text to Notepad
             os.system(f'''powershell -c "$wshell = New-Object -ComObject wscript.shell; $wshell.SendKeys('{query} ')"''')
 def create_word_document():
-    if platform.system() == "Windows":
-        pythoncom.CoInitialize()
-        word_app = win32.Dispatch("Word.Application")
-        word_app.Visible = True
-        doc = word_app.Documents.Add()
-        paragraph = doc.Content.Paragraphs.Add()
-
-        while True:
-            query = listen()
-            if "stop writing" in query:
-                speak("Stopped writing.")
-                break
-            else:
-                paragraph.Range.Text += query + " "
-                doc.Content.InsertAfter(query + " ")
-                paragraph.Range.Collapse(0)  # Move cursor to end of document
-                word_app.Application.ScreenUpdating = True
-
+    doc = Document()
+    paragraph = doc.add_paragraph()
+    
+    while True:
+        query = listen()  # Assuming this is your voice recognition function
+        if "stop writing" in query:
+            speak("Stopped writing.")
+            break
+        else:
+            paragraph.add_run(query + " ")
+            doc.save('output.docx')  # Save the document after every addition to avoid losing data
     else:
         doc = Document()
         paragraph = doc.add_paragraph()
